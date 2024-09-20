@@ -3,24 +3,25 @@ import SnackbarProvider, { useSnack } from "../../providers/SnackbarProvider";
 import axios from "axios";
 import useAxios from "../../hooks/useAxios";
 import { changeLikeStatus, deleteCard, editCard, createCard, getCards, getMyCards } from "../services/cardsApiService";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import ROUTES from "../../routes/routesModel";
 import normalizeCard from "../helpers/normalization/normalizeCard";
 import { useCurrentUser } from "../../users/providers/UserProvider";
 
 export default function useCards() {
-  const [cards, setCards] = useState([]); 
-  const [card, setCard] = useState(); 
-  const [isLoading, setIsLoading] = useState(true); 
-  const [error, setError] = useState(); 
-  const [filteredCards, setFilteredCards] = useState([]); 
-  const [searchQuery, setSearchQuery] = useState("");  
+  const [cards, setCards] = useState([]);
+  const [card, setCard] = useState();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState();
+  const [filteredCards, setFilteredCards] = useState([]); // For filtered cards
   const [favoriteCards, setFavoriteCards] = useState([]);
+  const [searchParams] = useSearchParams(); // Hook for handling query parameters
   const { user } = useCurrentUser();
-  const setSnack = useSnack(); 
-  const navigate = useNavigate();  
-  useAxios();  
+  const setSnack = useSnack();
+  const navigate = useNavigate();
+  useAxios();
 
+  // Function to handle the status of a request
   const requestStatus = (loading, errorMessage, cards, card = null) => {
     setIsLoading(loading);
     setError(errorMessage);
@@ -28,55 +29,35 @@ export default function useCards() {
     setCard(card);
   };
 
+  // Update query and filter cards whenever search query changes
+  useEffect(() => {
+    const query = searchParams.get("q")?.toLowerCase() || "";
+
+    // Filter cards based on the query
+    const filtered = cards.filter((card) =>
+      card.title?.toLowerCase().includes(query) ||
+      card.description?.toLowerCase().includes(query)
+    );
+    setFilteredCards(filtered);
+  }, [searchParams, cards]);
+
+  // Fetch all cards
   const getAllCards = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await axios.get("https://monkfish-app-z9uza.ondigitalocean.app/bcard2/cards");
-      const fetchedCards = response.data || [];  
-      setCards(fetchedCards);
-      setFilteredCards(fetchedCards);   
-      setFavoriteCards(fetchedCards);
+      const fetchedCards = response.data || [];
+      setCards(fetchedCards); // Set all cards
+      setFavoriteCards(fetchedCards); // Set favorite cards (if necessary)
       setSnack("success", "All cards are here!");
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching cards:', err.message);
+      console.error("Error fetching cards:", err.message);
     } finally {
       setIsLoading(false);
     }
   }, [setSnack]);
 
-
-  useEffect(() => {
-    if (isLoading) {
-      console.log('Still loading cards, search unavailable');
-      return;
-    }
-
-    if (!cards || cards.length === 0) {  
-      console.log('No cards available for search');
-      return;
-    }
-
-    if (!searchQuery) {
-      setFilteredCards(cards);
-    } else {
-      const lowerCaseQuery = searchQuery.toLowerCase();
-      const filtered = cards.filter((card) =>
-        card.title?.trim().toLowerCase().includes(lowerCaseQuery)
-      );
-      console.log('Filtered Cards:', filtered);
-      setFilteredCards(filtered);
-    }
-  }, [searchQuery, isLoading, cards]);
-
-  
-
-  
-  const handleSearch = useCallback((query) => {
-    setSearchQuery(query); 
-  }, []);
-
-  
   const getCardById = useCallback(async (id) => {
     try {
       const response = await axios.get(`https://monkfish-app-z9uza.ondigitalocean.app/bcard2/cards/${id}`);
@@ -98,6 +79,63 @@ export default function useCards() {
     }
   }, []);
 
+  const handleDelete = useCallback(async (cardId) => {
+    try {
+      setIsLoading(true);
+      await deleteCard(cardId);
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      setError(error);
+    }
+  }, []);
+
+  const handleLike = useCallback(async (cardId) => {
+    try {
+      const card = await changeLikeStatus(cardId);
+      requestStatus(false, null, cards, card);
+      setSnack("success", "The business card has been liked!");
+    } catch (error) {
+      requestStatus(false, error, null);
+    }
+  }, [cards, setSnack]);
+
+  const handleCreateCard = useCallback(async (cardFromClient) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const card = await createCard(normalizeCard(cardFromClient));
+      setCard(card);
+      setSnack("success", "A new business card has been created!");
+      setTimeout(() => {
+        navigate(ROUTES.ROOT);
+      }, 1000);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setSnack, navigate]);
+
+  const handlePhoneCard = (id) => {
+    window.location.href = `tel:${id}`;
+  };
+
+  const handleUpdateCard = useCallback(async (cardId, cardFromClient) => {
+    setIsLoading(true);
+    try {
+      const card = await editCard(cardId, normalizeCard(cardFromClient));
+      setCard(card);
+      setSnack("success", "The business card has been updated!");
+      setTimeout(() => navigate(ROUTES.ROOT), 1000);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setSnack, navigate]);
+
+
   const handleGetCard = useCallback(async (cardId) => {
     setIsLoading(true);
     try {
@@ -108,22 +146,22 @@ export default function useCards() {
       console.error(`Error fetching card ${cardId}:`, error);
       requestStatus(false, error.message || 'An error occurred', null);
     } finally {
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   }, []);
 
-  
+
   const handleFavCards = useCallback(async () => {
     try {
       setIsLoading(true);
-      await getAllCards(); 
-      console.log(cards); 
+      await getAllCards();
+      console.log(cards);
 
-      
+
       if (user && user._id) {
         const favData = cards.filter(card => card.likes.includes(user._id));
-        console.log(favData); 
-        setFavoriteCards(favData); 
+        console.log(favData);
+        setFavoriteCards(favData);
       } else {
         throw new Error('User not authenticated');
       }
@@ -141,73 +179,6 @@ export default function useCards() {
 
 
 
-  
-  const handleDelete = useCallback(async (cardId) => {
-    try {
-      setIsLoading(true);
-      await deleteCard(cardId);
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      setError(error);
-    }
-  }, []);
- 
-
-  const handleLike = useCallback(async (cardId) => {
-    try {
-      const card = await changeLikeStatus(cardId);
-      requestStatus(false, null, cards, card);
-      setSnack("success", "The business card has been liked!");
-    } catch (error) {
-      requestStatus(false, error, null);
-    }
-  }, [cards, setSnack]);
-
-
-  const handleCreateCard = useCallback(
-    async (cardFromClient) => {
-      setError(null);
-      setIsLoading(true);
-
-      try {
-        const card = await createCard(normalizeCard(cardFromClient));
-        setCard(card);
-        setSnack("success", "A new business card has been created");
-        setTimeout(() => {
-          navigate(ROUTES.ROOT);
-        }, 1000);
-      } catch (error) {
-        setError(error.message);
-      }
-      setIsLoading(false);
-    },
-    [setSnack, navigate]
-  );
-
-
-  
-  const handlePhoneCard = (id) => {
-    window.location.href = `tel:${id}`;
-  };
-
- 
-  const handleUpdateCard = useCallback(async (cardId, cardFromClient) => {
-    setIsLoading(true);
-    try {
-      const card = await editCard(cardId, normalizeCard(cardFromClient));
-      setCard(card);
-      setSnack("success", "The business card has been updated!");
-      setTimeout(() => navigate(ROUTES.ROOT), 1000);  
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setSnack, navigate]);
-
-
-
 
 
   return {
@@ -215,18 +186,16 @@ export default function useCards() {
     card,
     error,
     isLoading,
-    filteredCards,
     favoriteCards,
+    filteredCards, // Return filtered cards
     getAllCards,
+    handleFavCards,
     getCardById,
     handleGetMyCards,
-    handleGetCard,
-    handleFavCards,
     handleDelete,
     handleLike,
     handleUpdateCard,
     handlePhoneCard,
     handleCreateCard,
-    handleSearch,
   };
 }

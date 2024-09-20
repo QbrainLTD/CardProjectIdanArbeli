@@ -36,7 +36,7 @@ export default function CardsPage() {
 
       
       <CardsFeedback
-        cards={cards} 
+        cards={filteredCards} 
         isLoading={isLoading}
         error={error}
         handleDelete={handleDelete}
