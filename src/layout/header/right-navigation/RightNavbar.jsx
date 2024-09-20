@@ -7,15 +7,17 @@ import { useCurrentUser } from "../../../users/providers/UserProvider";
 import Logged from "./Logged";
 import NotLogged from "./NotLogged";
 import SearchBar from "./SearchBar";
+import MoreButton from "./MoreButton";
 
 export default function RightNavbar() {
   const { user } = useCurrentUser();
   const { isDark, toggleDarkMode } = useTheme();
 
   return (
+    <>
     <Box sx={{ display: { xs: "none", md: "inline-flex" }, alignItems: "center" }}>
       <Toolbar>
-        {/* Reuse SearchBar component */}
+        
         <SearchBar />
 
         <IconButton sx={{ ml: 1 }} onClick={toggleDarkMode}>
@@ -24,6 +26,8 @@ export default function RightNavbar() {
 
         {user ? <Logged /> : <NotLogged />}
       </Toolbar>
-    </Box>
+      </Box>
+      <MoreButton />
+    </>
   );
 }
