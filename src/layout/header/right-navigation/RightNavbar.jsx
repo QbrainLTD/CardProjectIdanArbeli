@@ -10,6 +10,7 @@ import { useCurrentUser } from "../../../users/providers/UserProvider";
 import Logged from "./Logged";
 import NotLogged from "./NotLogged";
 import useCards from "../../../cards/hooks/useCards";
+import { grey } from "@mui/material/colors";
 
 const SearchBar = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -55,12 +56,12 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 export default function RightNavbar() {
   const { user } = useCurrentUser();
   const { isDark, toggleDarkMode } = useTheme();
-  const { handleSearch } = useCards();  // Get handleSearch from the useCards hook
+  const { handleSearch } = useCards();  
 
   return (
     <Box sx={{ display: { xs: "none", md: "inline-flex" }, alignItems: "center" }}>
       <Toolbar>
-        <SearchBar>
+        <SearchBar sx={{ color: 'black', backgroundColor:"#e0e0e0"}}>
           <SearchIconWrapper>
             <SearchIcon />
           </SearchIconWrapper>
@@ -68,7 +69,7 @@ export default function RightNavbar() {
           <StyledInputBase
             placeholder="Search…"
             inputProps={{ 'aria-label': 'search' }}
-            onChange={(e) => handleSearch(e.target.value)}  // Trigger search on input change
+            onChange={(e) => handleSearch(e.target.value)} 
           />
         </SearchBar>
 

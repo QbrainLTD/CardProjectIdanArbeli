@@ -8,6 +8,7 @@ import { styled } from '@mui/material/styles';
 import ROUTES from "../../routes/routesModel";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "../../users/providers/UserProvider";
+import { grey } from "@mui/material/colors";
 
 const FloatingButton = styled(Fab)(({ theme }) => ({
   position: 'fixed',
@@ -28,8 +29,8 @@ export default function CardsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Cards"
+      <PageHeader 
+        title="Cards page"
         subtitle="On this page you can find all business cards from all categories"
       />
 

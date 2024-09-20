@@ -32,7 +32,12 @@ export default function SnackbarProvider({ children }) {
         onClose={() => {
           setOpenSnack(false);
         }}
-        autoHideDuration={5000}
+        autoHideDuration={2000}
+        sx={{
+          top: '10vh', 
+          right: '0',  
+          transform: 'none' 
+        }}
       >
         <Alert severity={snackColor} variant={snackVariant}>
           {snackMessage}
